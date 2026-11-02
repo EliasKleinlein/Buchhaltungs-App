@@ -1,0 +1,73 @@
+# Projekt-intern (bestehende Entscheidung)
+ToDoS.md
+
+# --- Geheimnisse und Zugangsdaten (nie committen) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.cer
+*.crt
+*.csr
+*.jks
+*.keystore
+*.mobileprovision
+*.provisionprofile
+id_rsa*
+id_ed25519*
+*.ppk
+secrets.*
+credentials*
+service-account*.json
+GoogleService-Info.plist
+google-services.json
+.npmrc
+.netrc
+
+# --- Daten (später echte Buchhaltungsdaten) ---
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+*.bak
+data/private/
+
+# --- Abhängigkeiten und Build-Ausgaben ---
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# --- iOS / Xcode ---
+**/Pods/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcarchive
+*.ipa
+*.dSYM
+*.dSYM.zip
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/capacitor-cordova-ios-plugins/
+
+# --- Logs und temporäre Dateien ---
+*.log
+npm-debug.log*
+*.tmp
+*.swp
+*~
+
+# --- System, Editor, lokale Werkzeuge ---
+.DS_Store
+.idea/
+.vscode/
+.playwright-mcp/
+.claude/
