@@ -1,8 +1,19 @@
 # AP 0: Bestandsaufnahme und Architekturplan
 
-Stand: 2026-11-04, ergänzt am 2026-11-08. Status: **Entwurf, teilweise entschieden** (E1, E2, E7, siehe Abschnitt 4.1). Es wurde nichts implementiert und kein Cluster verändert.
+Stand: 2026-11-04, ergänzt am 2026-11-08 und 2026-11-09. Status: **Entwurf, Entscheidungen getroffen** (E1–E11, E8 zurückgestellt, siehe Abschnitt 4.1). Es wurde nichts implementiert und kein Cluster verändert.
 
-Dieses Dokument ist die Grundlage für AP 1 bis AP 6. Alle als „Empfehlung“ markierten Punkte brauchen deine Entscheidung (Abschnitt 4).
+Dieses Dokument ist die Grundlage für die Arbeitspakete (AP) 1 bis 6:
+
+| AP | Inhalt |
+|---|---|
+| AP 1 | Login und Sitzungen (Identity-Provider, MFA, Passwort-Reset) |
+| AP 2 | Zentrale Autorisierung (Mandantenprüfung, Rollen, Rechte-Matrix) |
+| AP 3 | Mandanten in Kubernetes (Namespace, Netzwerkregeln, Provisionierung) |
+| AP 4 | Datenbank und Belegspeicher (inkl. Audit, Backups, Wiederherstellung) |
+| AP 5 | Admin-Oberfläche und Supportzugriff |
+| AP 6 | Sicherheitstests gegen zwei Testmandanten |
+
+Alle als „Empfehlung“ markierten Punkte brauchen deine Entscheidung (Abschnitt 4).
 
 ---
 
@@ -24,19 +35,23 @@ Dieses Dokument ist die Grundlage für AP 1 bis AP 6. Alle als „Empfehlung“ 
 
 **Folge:** Es gibt keinen Bestand, der Architekturentscheidungen vorgibt oder an den man sich anpassen müsste. Das Frontend bleibt unverändert und bekommt später nur eine API-Anbindung.
 
-### 1.2 Entwicklungsrechner (geprüft am 2026-11-04)
+### 1.2 Entwicklungsrechner und Server: Tiny-PC (geprüft am 2026-11-09/10)
+
+Seit 2026-11-09 wird auf dem Tiny-PC entwickelt. Er ist zugleich Stufe 2 (E7). Die frühere Erfassung des MacBooks ist überholt.
 
 | Werkzeug | Status |
 |---|---|
-| macOS, Apple Silicon (arm64), 10 Kerne, 16 GB RAM | ausreichend für einen lokalen Cluster |
-| Node.js 24.19 | vorhanden |
-| .NET SDK 10.0.401 | vorhanden |
-| Podman 6.1.1 | vorhanden, VM `podman-machine-default` mit 2 GB RAM, **nie gestartet** |
-| Docker, kubectl, kind, k3d, Helm | **fehlen** |
+| Windows 11 Pro, AMD Ryzen 7 5825U (x64), 8 Kerne / 16 Threads, 31,4 GB RAM | ausreichend für einen lokalen Cluster |
+| Festplatte | 476 GB, davon 390 GB frei |
+| WSL2 mit Ubuntu 24.04 | vorhanden |
+| Docker Desktop (mit `kubectl`) | vorhanden, läuft |
+| Node.js 26.13 (LTS), npm 11.20 | installiert am 2026-11-10 |
+| .NET SDK 10.0.403 | installiert am 2026-11-10 |
+| Podman, kind, k3d, Helm | fehlen |
 | PostgreSQL-Client | fehlt |
-| Xcode | fehlt |
+| Xcode | nicht möglich (nur macOS); iOS-Build später auf einem Mac |
 
-**Folge:** Für einen lokalen Cluster muss die Podman-VM auf mindestens 6–8 GB RAM vergrößert werden, und `kubectl`, `k3d` (oder `kind`) und `helm` müssen installiert werden.
+**Folge:** Für den lokalen Cluster reicht Docker Desktop als Grundlage für k3d; Podman wird nicht gebraucht. `k3d` und `helm` müssen noch installiert werden. Eine grobe Schätzung (nicht gemessen): etwa 1 GB RAM je Mandant (Silo mit Backend, Postgres, Zitadel) plus 3–4 GB Plattform. Die echten Werte werden in Schritt 7 gemessen.
 
 ### 1.3 Bestehende Vorgaben aus der Vision
 
@@ -106,7 +121,7 @@ Zwei dieser Vorgaben stehen in Spannung zu „Namespace pro Mandant“. Siehe Ri
 |---|---|---|
 | Backend | **ASP.NET Core (.NET 10, LTS)**, EF Core, Npgsql | Passt zu deinem C#-Lernpfad, SDK ist installiert, eingebaute Policy-basierte Autorisierung, langer Support |
 | Datenbank | **PostgreSQL** mit dem Operator **CloudNativePG** | TLS, Backups und Wiederherstellung (Point-in-Time) sind eingebaut, läuft auf arm64 |
-| Identity-Provider | **Keycloak** (Alternative: Zitadel) | Login, Passwort-Reset, MFA, Brute-Force-Schutz und Einladungen sind fertig und geprüft. Eine eigene Loginverwaltung wäre das größte Sicherheitsrisiko des Projekts |
+| Identity-Provider | **Zitadel**, eine Instanz je Mandant (entschieden, E4) | Login, Passwort-Reset, MFA, Brute-Force-Schutz und Einladungen sind fertig und geprüft. Eine eigene Loginverwaltung wäre das größte Sicherheitsrisiko des Projekts |
 | Objektspeicher (Belege) | S3-kompatibel, Produkt offen (siehe E6) | Bucket pro Mandant, Object Lock für Aufbewahrung |
 | Ingress / TLS | Traefik (in k3s enthalten) + cert-manager | Keine zusätzliche Software nötig |
 | Secrets | Sealed Secrets oder SOPS (Git), Zugangsdaten von CloudNativePG erzeugt | Nichts Geheimes im öffentlichen Repo |
@@ -153,7 +168,7 @@ Zwei dieser Vorgaben stehen in Spannung zu „Namespace pro Mandant“. Siehe Ri
 | Unternehmensdaten verwalten | ja | ja | nein |
 | Weitere Benutzer verwalten | ja | **nicht freigegeben** | nein |
 | Mandanten anlegen / sperren | ja | nein | nein |
-| Audit-Protokolle einsehen | alle | eigenes Unternehmen (Vorschlag, E9) | nein |
+| Audit-Protokolle einsehen | alle | eigenes Unternehmen, nur lesend (E9) | nein |
 | Kubernetes-Zugriff | **nein** (getrennter Betreiberzugang) | nein | nein |
 
 Die Rollen liegen im Identity-Provider als Claims (`tenant_id`, `roles`). Kubernetes-RBAC regelt nur, was Dienste (ServiceAccounts) und Betreiber im Cluster dürfen.
@@ -195,7 +210,7 @@ Buchhaltungs-App/
 
 ## 3. Implementierungsreihenfolge
 
-Jeder Schritt endet mit Testausgaben und wartet auf deine Abnahme (Regel 8).
+Jeder Schritt endet mit Testausgaben und wartet auf deine Abnahme.
 
 | # | Schritt | AP | Abhängig von |
 |---|---|---|---|
@@ -238,7 +253,20 @@ Hinweis: Die Reihenfolge weicht leicht von der AP-Nummerierung ab. Datenbank (AP
 | **E2** | **C# mit .NET 10** | wie in 2.3 vorgeschlagen |
 | **E7** | **Raspberry Pi wird übersprungen.** Stufe 2 ist der bereits laufende Tiny-PC im Heimnetz, der als Server dient | `deploy/environments/pi/` entfällt und wird zu `deploy/environments/tiny/`. Risiko R2 entfällt. Hardware des Tiny-PCs (RAM, CPU) vor Schritt 1 erfassen |
 
-Noch offen: E3–E6 und E8–E11.
+### 4.2 Getroffene Entscheidungen (2026-11-09)
+
+| # | Entscheidung | Folge für den Plan |
+|---|---|---|
+| **E3** | **Eigene Datenbank-Instanz je Mandant** (ergibt sich aus E1) | Isolation erledigt. Plattformdaten (Mandantenliste, Admin-Audit) liegen in einer eigenen Plattform-DB außerhalb der Mandanten |
+| **E4** | **Zitadel, eine Instanz je Mandant.** Alles, was zu einer Firma gehört (Backend, Datenbank, Zitadel), wird als **ein Paket** ausgeliefert: das Helm-Chart `tenant` | Ersetzt Keycloak in 2.3 und im Diagramm 2.2; `ns: identity` wird durch Zitadel im Mandanten-Namespace ersetzt. Zitadel nutzt die Postgres-Instanz des Mandanten mit eigener DB und Rolle. Intern bleiben es getrennte Container (ein Prozess je Container, Pod Security `restricted`). Der Plattform-Admin bekommt eine **eigene, zentrale Zitadel-Instanz** in `ns: platform` |
+| **E5** | **Subdomain je Mandant** (`firma-a.app.<domain>`), ergibt sich aus E4 | Das System muss die Firma vor dem Login kennen, um zur richtigen Zitadel-Instanz zu leiten. Der Token wird trotzdem gegen `TENANT_ID` geprüft |
+| **E6** | **SeaweedFS (Apache-2.0), eine gemeinsame Instanz in `ns: storage`, ein Bucket je Mandant.** Vorgabe: „effizienter und trotzdem maximal sicher“ (2026-11-10) | Vier Schutzschichten statt eigener Instanz je Mandant: (1) eigener Bucket mit eigenem Zugangsschlüssel, der nur diesen Bucket erreicht; (2) **Verschlüsselung im Backend vor dem Hochladen** mit einem Schlüssel je Mandant, der nur im Namespace des Mandanten liegt. Selbst bei einem Fehler im Speicher sind fremde Belege unlesbar; (3) NetworkPolicy: nur das Backend des Mandanten erreicht den Speicher; (4) Object Lock im Modus Compliance für aufbewahrungspflichtige Belege. MinIO (archiviert, keine Sicherheitsupdates) und Garage (kein Object Lock) sind ausgeschlossen. Object Lock wird in AP 4 mit eigenem Test geprüft (T4.7), bevor wir uns darauf verlassen. Cloud (Stufe 3): später EU-Anbieter mit Object Lock oder dieselbe SeaweedFS-Lösung |
+| **E8** | **Zurückgestellt.** Der Fokus liegt auf dem Produkt; Stufe 3 (Cloud) bleibt möglich | Wird entschieden, wenn Stufe 3 konkret wird. Bis dahin gilt die Empfehlung (EU, Rechenzentrum in Deutschland) als Richtung |
+| **E9** | **Ja:** Der Kundenadmin sieht das Audit-Protokoll seines eigenen Unternehmens, nur lesend | Eigene Policy „Audit lesen (eigener Mandant)“ in AP 2, Ansicht in AP 5 |
+| **E10** | **Supportzugriff nur mit Begründung und Zeitlimit**, jeder Zugriff im Audit, optional Benachrichtigung des Kundenadmins | Umsetzung in AP 5, Tests T5.1 und T5.2 |
+| **E11** | **TLS zu Datenbank, Speicher und Identity-Provider**, kein Service-Mesh | Trennung innerhalb des Clusters über NetworkPolicies (AP 3) |
+
+Alle Entscheidungen aus Abschnitt 4 sind getroffen (E8 zurückgestellt).
 
 ---
 
@@ -277,7 +305,7 @@ Noch offen: E3–E6 und E8–E11.
 
 ## 6. Verifizierbare Abnahmetests
 
-Jeder Test hat eine erwartete Ausgabe. „Bestanden“ gilt nur mit protokollierter Testausgabe (Regel 6).
+Jeder Test hat eine erwartete Ausgabe. „Bestanden“ gilt nur mit protokollierter Testausgabe.
 
 | ID | AP | Test | Erwartetes Ergebnis |
 |---|---|---|---|
@@ -302,6 +330,8 @@ Jeder Test hat eine erwartete Ausgabe. „Bestanden“ gilt nur mit protokollier
 | T4.4 | 4 | Festgeschriebene Buchung löschen | nicht möglich, nur Storno, Audit-Eintrag vorhanden |
 | T4.5 | 4 | Audit-Eintrag nachträglich ändern | DB verweigert; Hash-Kette würde Manipulation zeigen |
 | T4.6 | 4 | Backup einspielen in leere Umgebung | Daten vollständig, Prüfsummen gleich |
+| T4.7 | 4 | Beleg mit Object Lock (Compliance) vor Fristende löschen oder überschreiben, auch mit Admin-Schlüssel | abgelehnt, Beleg unverändert |
+| T4.8 | 4 | Beleg von A direkt aus dem Speicher lesen (ohne Backend von A) | nur verschlüsselte Daten, nicht lesbar |
 | T5.1 | 5 | Admin öffnet Kundenbereich ohne Begründung | verweigert |
 | T5.2 | 5 | Admin öffnet Kundenbereich mit Begründung | erlaubt, zeitlich begrenzt, Audit-Eintrag mit Grund |
 | T5.3 | 5 | Admin-Konto versucht `kubectl`-Aktion | kein Zugang |

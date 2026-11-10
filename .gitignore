@@ -29,6 +29,41 @@ google-services.json
 .npmrc
 .netrc
 
+# --- .NET-Backend: lokale Konfiguration mit möglichen Zugangsdaten ---
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+*.pubxml
+*.pubxml.user
+launchSettings.json
+
+# --- Kubernetes, Helm, Secrets-Werkzeuge ---
+kubeconfig
+*.kubeconfig
+.kube/
+*-secret.yaml
+*-secret.yml
+*.secret.yaml
+*.secret.yml
+*.sops.dec.*
+*.dec.yaml
+*.dec.yml
+values.local.yaml
+values.*.local.yaml
+*.age
+keys.txt
+sealed-secrets-*.key
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# --- Lokale Infrastrukturdaten (Server-IP, Hostnamen, Zugänge) ---
+*.local.md
+hosts.local
+inventory.local*
+
 # --- Daten (später echte Buchhaltungsdaten) ---
 *.sqlite
 *.sqlite3
@@ -45,6 +80,13 @@ build/
 coverage/
 .vite/
 *.tsbuildinfo
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.trx
 
 # --- iOS / Xcode ---
 **/Pods/
