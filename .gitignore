@@ -114,3 +114,6 @@ npm-debug.log*
 .vscode/
 .playwright-mcp/
 .claude/
+
+# --- Interne Planungsdokumente ---
+docs/architektur/AP0_Architekturplan.md
